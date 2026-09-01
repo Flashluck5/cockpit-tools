@@ -1,4 +1,5 @@
 pub mod account;
+pub mod autoclaw;
 pub mod claude;
 pub mod codebuddy;
 pub mod codex;

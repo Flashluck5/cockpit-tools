@@ -1148,6 +1148,9 @@ pub fn run() {
             commands::zed::zed_focus_default_session,
             // ZCode Commands
             commands::zcode::list_zcode_accounts,
+            commands::autoclaw::get_autoclaw_status,
+            commands::autoclaw::autoclaw_bridge_status,
+            commands::autoclaw::autoclaw_bridge_start,
             commands::zcode::delete_zcode_account,
             commands::zcode::delete_zcode_accounts,
             commands::zcode::import_zcode_from_json,
