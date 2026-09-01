@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { invoke } from '@tauri-apps/api/core';
 import { useAccountStore } from '../stores/useAccountStore';
 import { useCodexAccountStore } from '../stores/useCodexAccountStore';
 import { useGitHubCopilotAccountStore } from '../stores/useGitHubCopilotAccountStore';
@@ -2742,6 +2743,13 @@ export function DashboardPage({
     return result;
   }, [platformGroups, remoteHiddenPlatformSet, visibleDashboardEntryOrder]);
   const isSinglePlatformMode = visibleDashboardCardIds.length === 1;
+  const [autoclawInstalled, setAutoclawInstalled] = useState(false);
+  useEffect(() => {
+    invoke<{ installed: boolean }>('get_autoclaw_status')
+      .then((value) => setAutoclawInstalled(Boolean(value?.installed)))
+      .catch(() => {});
+  }, []);
+
   const cardRows = useMemo(() => {
     const rows: PlatformId[][] = [];
     for (let i = 0; i < visibleDashboardCardIds.length; i += 2) {
@@ -3686,10 +3694,26 @@ export function DashboardPage({
             {!isSinglePlatformMode && row.length < 2 && <div className="main-card main-card-placeholder" />}
           </div>
         ))}
+
+        {/* AutoClaw: native stat tile (single local account, not in layout store) */}
+        <button
+          className="stat-card stat-card-button"
+          key="autoclaw-stat"
+          onClick={() => document.getElementById('autoclaw-mini-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+          title={t('dashboard.switchTo', 'Перейти к AutoClaw')}
+        >
+          <div className="stat-icon-bg windsurf stat-icon-trigger">
+            <span style={{ fontSize: 22, lineHeight: 1 }}>🦞</span>
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">AutoClaw</span>
+            <span className="stat-value">{autoclawInstalled ? 1 : 0}</span>
+          </div>
+        </button>
       </div>
 
       {/* AutoClaw: mini card at the bottom */}
-      <div className="cards-section">
+      <div className="cards-section" id="autoclaw-mini-card">
         <div className="cards-split-row">
           <AutoclawCard />
           <div className="main-card main-card-placeholder" />
