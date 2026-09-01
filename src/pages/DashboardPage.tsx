@@ -43,6 +43,7 @@ import {
   getQoderSubscriptionInfo,
 } from '../types/qoder';
 import type { ZcodeAccount } from '../types/zcode';
+import AutoclawCard from '../components/autoclaw/AutoclawCard';
 import {
   TraeAccount,
   getTraeAccountPlatformId,
@@ -3683,6 +3684,10 @@ export function DashboardPage({
             {!isSinglePlatformMode && row.length < 2 && <div className="main-card main-card-placeholder" />}
           </div>
         ))}
+      </div>
+
+      <div style={{ marginTop: 18, marginBottom: 8 }}>
+        <AutoclawCard />
       </div>
 
       {tagModalState && (
