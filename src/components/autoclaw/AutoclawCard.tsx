@@ -32,8 +32,6 @@ type BridgeState =
   | { kind: 'stopped'; error: string }
   | { kind: 'starting' };
 
-const HIDE_KEY = 'autoclaw.dashboardCardHidden.v1';
-
 function formatUnix(seconds?: number | null): string {
   if (!seconds) return '—';
   return new Date(seconds * 1000).toLocaleString([], {
@@ -49,9 +47,7 @@ export default function AutoclawCard() {
   const [refreshing, setRefreshing] = useState(false);
   const [bridge, setBridge] = useState<BridgeState>({ kind: 'idle' });
   const [showModels, setShowModels] = useState(false);
-  const [hidden, setHidden] = useState<boolean>(() => {
-    try { return localStorage.getItem(HIDE_KEY) === '1'; } catch { return false; }
-  });
+  const [hidden, setHidden] = useState(false);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -93,20 +89,23 @@ export default function AutoclawCard() {
   }, [refresh, refreshBridge]);
 
   const hideCard = () => {
-    try { localStorage.setItem(HIDE_KEY, '1'); } catch { /* ignore */ }
+    // soft-hide: survives until page reload only, ghost button always restores
     setHidden(true);
   };
 
   if (hidden) {
     return (
-      <div className="main-card main-card-placeholder">
+      <div
+        className="main-card main-card-placeholder"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}
+      >
         <button
-          className="header-action-btn"
-          style={{ margin: 'auto', padding: '4px 14px' }}
-          onClick={() => {
-            try { localStorage.removeItem(HIDE_KEY); } catch { /* ignore */ }
-            setHidden(false);
+          style={{
+            margin: 'auto', padding: '8px 16px', cursor: 'pointer', borderRadius: 8,
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)',
+            color: 'inherit', fontSize: 13,
           }}
+          onClick={() => setHidden(false)}
         >
           🦞 {t('autoclaw.showCard', 'Показать AutoClaw')}
         </button>
