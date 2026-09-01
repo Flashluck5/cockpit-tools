@@ -3673,13 +3673,6 @@ export function DashboardPage({
 
       </div>
 
-      {/* AutoClaw: native dashboard slot */}
-      <div className="cards-section">
-        <div className="cards-split-row">
-          <AutoclawCard />
-          <div className="main-card main-card-placeholder" />
-        </div>
-      </div>
       {/* Main Comparison Section */}
       <div className="cards-section">
         {cardRows.map((row, rowIndex) => (
@@ -3695,6 +3688,13 @@ export function DashboardPage({
         ))}
       </div>
 
+      {/* AutoClaw: mini card at the bottom */}
+      <div className="cards-section">
+        <div className="cards-split-row">
+          <AutoclawCard />
+          <div className="main-card main-card-placeholder" />
+        </div>
+      </div>
       {tagModalState && (
         <TagEditModal
           isOpen={true}
