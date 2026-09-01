@@ -3679,6 +3679,21 @@ export function DashboardPage({
           );
         })}
 
+        {/* AutoClaw: native stat tile (single local account, not in layout store) */}
+        <button
+          className="stat-card stat-card-button"
+          key="autoclaw-stat"
+          onClick={() => document.getElementById('autoclaw-mini-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+          title={t('dashboard.switchTo', 'Перейти к AutoClaw')}
+        >
+          <div className="stat-icon-bg windsurf stat-icon-trigger">
+            <span style={{ fontSize: 22, lineHeight: 1 }}>🦞</span>
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">AutoClaw</span>
+            <span className="stat-value">{autoclawInstalled ? 1 : 0}</span>
+          </div>
+        </button>
       </div>
 
       {/* Main Comparison Section */}
@@ -3695,21 +3710,6 @@ export function DashboardPage({
           </div>
         ))}
 
-        {/* AutoClaw: native stat tile (single local account, not in layout store) */}
-        <button
-          className="stat-card stat-card-button"
-          key="autoclaw-stat"
-          onClick={() => document.getElementById('autoclaw-mini-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-          title={t('dashboard.switchTo', 'Перейти к AutoClaw')}
-        >
-          <div className="stat-icon-bg windsurf stat-icon-trigger">
-            <span style={{ fontSize: 22, lineHeight: 1 }}>🦞</span>
-          </div>
-          <div className="stat-info">
-            <span className="stat-label">AutoClaw</span>
-            <span className="stat-value">{autoclawInstalled ? 1 : 0}</span>
-          </div>
-        </button>
       </div>
 
       {/* AutoClaw: mini card at the bottom */}
