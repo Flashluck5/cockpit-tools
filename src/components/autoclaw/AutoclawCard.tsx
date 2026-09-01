@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useTranslation } from 'react-i18next';
+import { RotateCw } from 'lucide-react';
 
 interface AutoclawModelInfo {
   id: string;
@@ -97,24 +98,31 @@ export default function AutoclawCard() {
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
-        padding: '16px 18px',
         cursor: 'default',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 20 }}>🦞</span>
-        <strong style={{ fontSize: 15 }}>AutoClaw</strong>
-        {status?.app_version && (
-          <span style={{ opacity: 0.55, fontSize: 12 }}>v{status.app_version}</span>
-        )}
-        <span style={{ flex: 1 }} />
-        <button
-          className="header-action-btn"
-          style={{ padding: '2px 10px' }}
-          onClick={() => { void refresh(); void refreshBridge(); }}
-        >
-          ↻
-        </button>
+      <div className="main-card-header">
+        <div className="header-title">
+          <span style={{ fontSize: 18, lineHeight: 1 }}>🦞</span>
+          <h3>
+            AutoClaw
+            {status?.app_version && (
+              <span style={{ opacity: 0.5, fontSize: 12, fontWeight: 400, marginLeft: 6 }}>
+                v{status.app_version}
+              </span>
+            )}
+          </h3>
+        </div>
+        <div className="header-action-group">
+          <button
+            className="header-action-btn header-icon-btn"
+            onClick={() => { void refresh(); void refreshBridge(); }}
+            title={t('common.refresh', 'Обновить')}
+            aria-label={t('common.refresh', 'Обновить')}
+          >
+            <RotateCw size={14} />
+          </button>
+        </div>
       </div>
 
       {!loaded && <div style={{ opacity: 0.6 }}>{t('autoclaw.loading', 'Загрузка…')}</div>}
