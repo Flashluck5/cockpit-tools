@@ -44,6 +44,7 @@ import {
 } from '../types/qoder';
 import type { ZcodeAccount } from '../types/zcode';
 import AutoclawCard from '../components/autoclaw/AutoclawCard';
+import AutoclawBridgeTopButton from '../components/autoclaw/AutoclawBridgeTopButton';
 import {
   TraeAccount,
   getTraeAccountPlatformId,
@@ -3535,6 +3536,7 @@ export function DashboardPage({
           <ManualHelpIconButton className="header-action-btn dashboard-manual-btn dashboard-title-manual-btn" />
         </div>
         <div className="dashboard-top-actions">
+          <AutoclawBridgeTopButton />
           <button className="header-action-btn" onClick={onOpenPlatformLayout}>
             <span>{t('platformLayout.title', '平台布局')}</span>
           </button>
