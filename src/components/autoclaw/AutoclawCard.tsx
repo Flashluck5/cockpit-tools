@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useTranslation } from 'react-i18next';
-import { RotateCw } from 'lucide-react';
+import { CheckCircle2, EyeOff, Plug, RotateCw, Sparkles } from 'lucide-react';
 
 interface AutoclawModelInfo {
   id: string;
@@ -32,6 +32,8 @@ type BridgeState =
   | { kind: 'stopped'; error: string }
   | { kind: 'starting' };
 
+const HIDE_KEY = 'autoclaw.dashboardCardHidden.v1';
+
 function formatUnix(seconds?: number | null): string {
   if (!seconds) return '—';
   return new Date(seconds * 1000).toLocaleString([], {
@@ -44,17 +46,22 @@ export default function AutoclawCard() {
   const [status, setStatus] = useState<AutoclawStatus | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [bridge, setBridge] = useState<BridgeState>({ kind: 'idle' });
   const [showModels, setShowModels] = useState(false);
+  const [hidden, setHidden] = useState<boolean>(() => {
+    try { return localStorage.getItem(HIDE_KEY) === '1'; } catch { return false; }
+  });
 
   const refresh = useCallback(async () => {
+    setRefreshing(true);
     setError(null);
     try {
-      const value = await invoke<AutoclawStatus>('get_autoclaw_status');
-      setStatus(value);
+      setStatus(await invoke<AutoclawStatus>('get_autoclaw_status'));
     } catch (e) {
       setError(String(e));
     } finally {
+      setRefreshing(false);
       setLoaded(true);
     }
   }, []);
@@ -85,22 +92,35 @@ export default function AutoclawCard() {
     void refreshBridge();
   }, [refresh, refreshBridge]);
 
+  const hideCard = () => {
+    try { localStorage.setItem(HIDE_KEY, '1'); } catch { /* ignore */ }
+    setHidden(true);
+  };
+
+  if (hidden) {
+    return (
+      <div className="main-card main-card-placeholder">
+        <button
+          className="header-action-btn"
+          style={{ margin: 'auto', padding: '4px 14px' }}
+          onClick={() => {
+            try { localStorage.removeItem(HIDE_KEY); } catch { /* ignore */ }
+            setHidden(false);
+          }}
+        >
+          🦞 {t('autoclaw.showCard', 'Показать AutoClaw')}
+        </button>
+      </div>
+    );
+  }
+
   const expText = formatUnix(status?.token_expires_at);
   const hoursLeft = status?.token_expires_at
     ? Math.max(0, Math.round((status.token_expires_at * 1000 - Date.now()) / 3600000))
     : 0;
 
   return (
-    <div
-      className="main-card"
-      style={{
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
-        cursor: 'default',
-      }}
-    >
+    <div className="main-card autoclaw-card" style={{ cursor: 'default' }}>
       <div className="main-card-header">
         <div className="header-title">
           <span style={{ fontSize: 18, lineHeight: 1 }}>🦞</span>
@@ -115,110 +135,131 @@ export default function AutoclawCard() {
         </div>
         <div className="header-action-group">
           <button
-            className="header-action-btn header-icon-btn"
+            className="header-action-btn"
             onClick={() => { void refresh(); void refreshBridge(); }}
+            disabled={refreshing}
             title={t('common.refresh', 'Обновить')}
-            aria-label={t('common.refresh', 'Обновить')}
           >
-            <RotateCw size={14} />
+            <RotateCw size={14} className={refreshing ? 'loading-spinner' : ''} />
+            <span>{t('common.refresh', 'Обновить')}</span>
+          </button>
+          <button
+            className="header-action-btn header-icon-btn"
+            onClick={hideCard}
+            title={t('accounts.compact.hide', 'Скрыть')}
+            aria-label={t('accounts.compact.hide', 'Скрыть')}
+          >
+            <EyeOff size={14} />
           </button>
         </div>
       </div>
 
-      {!loaded && <div style={{ opacity: 0.6 }}>{t('autoclaw.loading', 'Загрузка…')}</div>}
-
-      {loaded && error && <div style={{ color: '#e05a5a' }}>{error}</div>}
-
-      {loaded && !error && status && !status.installed && (
-        <div style={{ opacity: 0.6 }}>
-          {t('autoclaw.notInstalled', 'AutoClaw не найден в системе')}
-        </div>
-      )}
-
-      {loaded && !error && status?.installed && (
-        <>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', fontSize: 13 }}>
-            <span>
-              👤 {status.email ?? '—'}
-              {status.is_guest ? ' (guest)' : ''}
-              {status.user_id != null && (
-                <span style={{ opacity: 0.5 }}> · id {status.user_id}</span>
-              )}
-            </span>
-            <span>
-              {status.token_valid ? '🟢' : '🔴'}{' '}
-              {status.token_valid
-                ? t('autoclaw.tokenValid', 'токен активен до {{exp}} (≈{{h}} ч)', {
-                    exp: expText,
-                    h: hoursLeft,
-                  })
-                : t('autoclaw.tokenExpired', 'токен истёк — запусти AutoClaw')}{' '}
-              {status.token_valid && `(${expText})`}
-            </span>
-          </div>
-
-          <div style={{ fontSize: 13, display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
-            <span>
-              🧠 {t('autoclaw.primaryModel', 'основная модель')}:{' '}
-              <strong>{status.primary_model ?? '—'}</strong>
-            </span>
-            <span>
-              📦 {t('autoclaw.models', 'моделей')}: {status.models.length}
-              <button
-                className="header-action-btn"
-                style={{ padding: '0 8px', marginLeft: 6, fontSize: 11 }}
-                onClick={() => setShowModels((v) => !v)}
-              >
-                {showModels ? '▲' : '▼'}
-              </button>
-            </span>
-          </div>
-
-          {showModels && (
-            <div style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.7 }}>
-              {status.models.map((model) => (
-                <div key={model.id}>
-                  <code>{model.id}</code> — {model.name} · ctx{' '}
-                  {model.context_window?.toLocaleString() ?? '—'} · out{' '}
-                  {model.max_tokens?.toLocaleString() ?? '—'}
-                </div>
-              ))}
+      <div className="split-content">
+        <div className="split-half current-half">
+          <span className="half-label">
+            <CheckCircle2 size={12} /> {t('autoclaw.currentAccount', 'Текущий аккаунт')}
+          </span>
+          {loaded && error && <div style={{ color: '#e05a5a', fontSize: 12 }}>{error}</div>}
+          {loaded && !error && status && !status.installed && (
+            <div style={{ opacity: 0.6, fontSize: 12 }}>
+              {t('autoclaw.notInstalled', 'AutoClaw не найден')}
             </div>
           )}
+          {loaded && !error && status?.installed && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <strong style={{ fontSize: 14 }}>
+                  {status.email ?? '—'}
+                </strong>
+                <span
+                  style={{
+                    fontSize: 10, padding: '1px 6px', borderRadius: 4,
+                    background: status.token_valid ? 'rgba(76,195,138,0.15)' : 'rgba(224,90,90,0.15)',
+                    color: status.token_valid ? '#4cc38a' : '#e05a5a',
+                  }}
+                >
+                  {status.token_valid ? 'GATEWAY' : 'EXPIRED'}
+                </span>
+              </div>
+              <div style={{ opacity: 0.75 }}>
+                {status.token_valid ? '🟢' : '🔴'}{' '}
+                {status.token_valid
+                  ? t('autoclaw.tokenValidUntil', 'токен до {{exp}} (≈{{h}} ч)', { exp: expText, h: hoursLeft })
+                  : t('autoclaw.tokenExpired', 'истёк — запусти AutoClaw')}
+              </div>
+              <div style={{ opacity: 0.75 }}>
+                🧠 {status.primary_model ?? '—'}
+              </div>
+              <div style={{ opacity: 0.75 }}>
+                {status.user_id != null && <>id {status.user_id} · </>}
+                {t('autoclaw.models', 'моделей')}: {status.models.length}
+              </div>
+            </div>
+          )}
+          {!loaded && <div style={{ opacity: 0.6 }}>{t('autoclaw.loading', 'Загрузка…')}</div>}
+        </div>
 
-          <div
-            style={{
-              borderTop: '1px solid rgba(255,255,255,0.08)',
-              paddingTop: 10,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              fontSize: 13,
-            }}
-          >
+        <div className="split-divider" />
+
+        <div className="split-half recommend-half">
+          <span className="half-label">
+            <Plug size={12} /> {t('autoclaw.bridge', 'Мост в ZCode')}
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+            {bridge.kind === 'running' && (
+              <div style={{ color: '#4cc38a' }}>
+                🟢 {t('autoclaw.bridgeRunning', 'работает')}
+                <div style={{ opacity: 0.7, fontSize: 11 }}>{bridge.info}</div>
+              </div>
+            )}
+            {bridge.kind === 'stopped' && (
+              <div style={{ color: '#e05a5a', fontSize: 12 }}>
+                🔴 {t('autoclaw.bridgeStopped', 'не запущен')}
+                <div style={{ opacity: 0.7, fontSize: 11 }}>{bridge.error}</div>
+              </div>
+            )}
+            {(bridge.kind === 'idle' || bridge.kind === 'checking') && (
+              <div style={{ opacity: 0.6 }}>{t('autoclaw.checking', 'проверка…')}</div>
+            )}
+            {bridge.kind === 'starting' && (
+              <div style={{ opacity: 0.6 }}>{t('autoclaw.starting', 'запуск…')}</div>
+            )}
             <button
               className="header-action-btn"
-              style={{ padding: '4px 14px' }}
+              style={{ padding: '4px 12px', alignSelf: 'flex-start' }}
               disabled={bridge.kind === 'starting' || bridge.kind === 'checking'}
               onClick={() => void startBridge()}
             >
-              {bridge.kind === 'starting'
-                ? t('autoclaw.starting', 'Запуск…')
-                : t('autoclaw.startBridge', '🚀 Запустить мост')}
+              🚀 {t('autoclaw.startBridge', 'Запустить мост')}
             </button>
-            {bridge.kind === 'running' && (
-              <span style={{ color: '#4cc38a' }}>
-                🟢 {t('autoclaw.bridgeRunning', 'мост работает')} {bridge.info}
-              </span>
-            )}
-            {bridge.kind === 'stopped' && (
-              <span style={{ color: '#e05a5a', opacity: 0.85 }}>🔴 {bridge.error}</span>
-            )}
-            {(bridge.kind === 'idle' || bridge.kind === 'checking') && (
-              <span style={{ opacity: 0.6 }}>{t('autoclaw.checking', 'проверка…')}</span>
-            )}
+            <div style={{ fontSize: 11, opacity: 0.6 }}>
+              {t('autoclaw.bridgeHint', 'модели AutoClaw → ZCode (127.0.0.1:8787/v1)')}
+            </div>
           </div>
-        </>
+        </div>
+      </div>
+
+      {status?.installed && status.models.length > 0 && (
+        <button className="card-footer-action" onClick={() => setShowModels((v) => !v)}>
+          {showModels
+            ? t('autoclaw.hideModels', 'Скрыть модели')
+            : `${t('autoclaw.showModels', 'Все модели')} (${status.models.length})`}
+        </button>
+      )}
+
+      {showModels && status && (
+        <div style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.8, padding: '0 4px 10px' }}>
+          {status.models.map((model) => (
+            <div key={model.id}>
+              <code>{model.id}</code> — {model.name} · ctx {model.context_window?.toLocaleString() ?? '—'} ·
+              out {model.max_tokens?.toLocaleString() ?? '—'}
+            </div>
+          ))}
+          <div style={{ opacity: 0.5, marginTop: 4 }}>
+            <Sparkles size={10} style={{ verticalAlign: 'middle' }} />{' '}
+            {status.quota_note ?? ''}
+          </div>
+        </div>
       )}
     </div>
   );
